@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+redis
+pymongo
+python-dotenv
+prometheus-fastapi-instrumentator
