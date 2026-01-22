@@ -5,6 +5,8 @@ from .database import db, redis_client
 
 CACHE_TTL = 200 # 5 minute
 
+limit_top_movies = 100
+
 #1
 
 # --- HELPER: Serializator Custom ---
@@ -298,3 +300,118 @@ def find_nearby_theaters(lat: float, lon: float, radius_km: int):
     except Exception as e:
         print(f"Geo Error: {e}")
         return []
+    
+def cache_movie_as_hash(movie_id: str, movie_data: dict):
+    """
+    Stochează doar câmpurile esențiale într-un Hash Redis.
+    Avantaj: Putem citi doar titlul fără să descărcăm tot JSON-ul.
+    """
+    key = f"movie:hash:{movie_id}"
+    
+    # Redis Hashes sunt plate, deci luăm doar câmpurile de top
+    # Convertim totul la string pentru siguranță
+    mapping = {
+        "title": str(movie_data.get('title', 'N/A')),
+        "year": str(movie_data.get('year', 'N/A')),
+        "genres": str(movie_data.get('genres', [])),
+        "director": str(movie_data.get('directors', ['Unknown'])[0])
+    }
+    
+    try:
+        redis_client.hset(key, mapping=mapping)
+        redis_client.expire(key, CACHE_TTL) 
+        return "Saved to Hash"
+    except Exception as e:
+        return str(e)
+
+def get_movie_hash_preview(movie_id: str):
+    """Citește doar hash-ul (rapid preview)."""
+    return redis_client.hgetall(f"movie:hash:{movie_id}")
+
+
+    
+def get_top_movies_optimized(limit=limit_top_movies):
+    leaderboard_key = "leaderboard:top_movies_opt"
+    
+    # 1. Verificăm dacă avem date în Redis
+    top_ids = redis_client.zrevrange(leaderboard_key, 0, limit - 1)
+    
+    source_msg = "Redis (ZSET + Hash Pipeline)"
+    
+    # 2. Dacă e gol, facem Seed ACUM
+    if not top_ids:
+        success = seed_optimized_cache(limit * 2) # Luăm mai multe pt rezervă
+        if success:
+            # Încercăm să citim iar după seed
+            top_ids = redis_client.zrevrange(leaderboard_key, 0, limit - 1)
+            source_msg = "MongoDB -> Redis (Just Seeded)"
+        else:
+            return [], "MongoDB Empty"
+
+    # 3. Luăm detaliile prin Pipeline (Fast Fetch)
+    pipe = redis_client.pipeline()
+    for mid in top_ids:
+        if isinstance(mid, bytes):
+            mid = mid.decode('utf-8')
+        pipe.hgetall(f"movie:hash:{mid}")
+        
+    hash_results = pipe.execute()
+    
+    # 4. Construim răspunsul
+    final_list = []
+
+    def ensure_str(value):
+        return value.decode('utf-8') if isinstance(value, bytes) else value
+    
+
+    for mid, data in zip(top_ids, hash_results):
+        if data:
+            # Convertim bytes -> string
+            clean_obj = {ensure_str(k): ensure_str(v) for k, v in data.items()}
+            # Adăugăm ID-ul manual
+            clean_obj['_id'] = ensure_str(mid)
+            final_list.append(clean_obj)
+            
+    return final_list, source_msg
+
+
+def seed_optimized_cache(limit=limit_top_movies):
+    """
+    Funcție auxiliară care citește din Mongo și populează
+    structurile optimizate în Redis (Hash-uri și ZSet).
+    """
+    print("⚙️ Seeding Optimized Cache...")
+    # Luăm filmele cu rating bun din Mongo
+    pipeline = [
+        {"$match": {"imdb.rating": {"$ne": ""}}}, 
+        {"$sort": {"imdb.rating": -1}}, 
+        {"$limit": limit}
+    ]
+    movies = list(db.movies.aggregate(pipeline))
+    
+    pipe = redis_client.pipeline()
+    leaderboard_key = "leaderboard:top_movies_opt"
+    
+    for m in movies:
+        mid = str(m['_id'])
+        # 1. Creăm Hash-ul (Doar date esențiale)
+        hash_key = f"movie:hash:{mid}"
+        mapping = {
+            "title": str(m.get('title', 'N/A')),
+            "year": str(m.get('year', 'N/A')),
+            "rating": str(m.get('imdb', {}).get('rating', 0)),
+            "poster": str(m.get('poster', '')) # Opțional, pt UI
+        }
+        pipe.hset(hash_key, mapping=mapping)
+        pipe.expire(hash_key, CACHE_TTL)
+        
+        # 2. Adăugăm în Sorted Set (ID + Scor)
+        # Redis ZADD syntax: nume_cheie, {membru: scor}
+        try:
+            score = float(mapping['rating'])
+            pipe.zadd(leaderboard_key, {mid: score})
+        except:
+            pass
+            
+    pipe.execute()
+    return True

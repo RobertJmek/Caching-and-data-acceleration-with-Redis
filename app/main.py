@@ -4,17 +4,18 @@ from fastapi import FastAPI, HTTPException
 from .service import (
     get_movie_with_cache, 
     get_top_movies, 
+    get_top_movies_optimized,
     update_movie_write_through, 
     delete_movie_write_through, 
     create_movie_write_through,
     seed_theaters,
     find_nearby_theaters
 )
-
+from .database import db, redis_client
 from prometheus_fastapi_instrumentator import Instrumentator
 import time
 
-limit_top_movies = 10
+limit_top_movies = 100
 
 app = FastAPI(title="Redis Cache Demo")
 
@@ -51,10 +52,10 @@ async def read_movie(movie_id: str):
 #2
 
 @app.get("/top-movies/")
-async def get_top_n_movies():
+async def get_top_n_movies(limit: int = limit_top_movies):
     start_time = time.time()
 
-    movies, source = get_top_movies(limit=limit_top_movies)
+    movies, source = get_top_movies(limit=limit)
 
     end_time = time.time()
 
@@ -155,3 +156,52 @@ async def search_nearby(lat: float, lon: float, radius: int = 5):
         "found": len(results),
         "results": results
     }
+
+@app.get("/top-movies-optimized/")
+async def get_top_n_movies_opt(limit: int = limit_top_movies):
+    start_time = time.time()
+
+    movies, source = get_top_movies_optimized(limit=limit)
+    end_time = time.time()
+
+    duration_ms = (end_time - start_time) * 1000
+
+    return {
+        "latency_ms": round(duration_ms, 2),
+        "source": source,
+        "count": len(movies),
+        "data": movies
+    }
+
+
+@app.post("/simulate/backdoor-update/{movie_id}")
+async def backdoor_update(movie_id: str, new_title: str):
+    """
+    MODIFICĂ DOAR MONGO! (Nu atinge Redis).
+    Simulează un update făcut de un alt sistem sau de un admin direct în bază.
+    Rezultat: Cache-ul devine STALE (Vechi).
+    """
+    try:
+        from bson import ObjectId
+        # Modificăm direct în Mongo
+        result = db.movies.update_one(
+            {"_id": ObjectId(movie_id)},
+            {"$set": {"title": new_title}}
+        )
+        return {"message": "Mongo updated (Redis ignored). Data is now inconsistent!"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/simulate/invalidate/{movie_id}")
+async def force_invalidate(movie_id: str):
+    """
+    Șterge forțat cheia din Redis.
+    Următorul Request va fi obligat să ia datele proaspete din Mongo.
+    """
+    key = f"movie:{movie_id}"
+    hash_key = f"movie:hash:{movie_id}"
+    
+    redis_client.delete(key)      # Șterge String Cache
+    redis_client.delete(hash_key) # Șterge Hash Cache
+    
+    return {"message": f"Cache invalidated for {movie_id}"}

@@ -4,3 +4,8 @@ redis
 pymongo
 python-dotenv
 prometheus-fastapi-instrumentator
+requests
+streamlit
+pandas
+plotly
+dnspython

@@ -1,1 +1,3 @@
 This project demonstrates how to integrate Redis as a high-performance caching layer to accelerate data retrieval from a persistent database (MongoDB). By implementing various caching strategies, we aim to reduce query latency, lower the load on the primary database, and improve overall system scalability.
+
+

@@ -6,6 +6,7 @@ services:
     container_name: redis_cache
     ports:
       - "6379:6379"
+    command: ["redis-server", "--maxmemory", "200mb", "--maxmemory-policy", "allkeys-lru"]
 
 # --- PROMETHEUS (Colectorul) ---
   prometheus:

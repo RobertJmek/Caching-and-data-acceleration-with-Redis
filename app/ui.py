@@ -5,7 +5,7 @@ import plotly.express as px
 import streamlit.components.v1 as components
 import json
 
-limit_top_movies = 10
+limit_top_movies = 100
 
 # Configurare pagină
 st.set_page_config(page_title="Redis Cache Demo", page_icon="⚡", layout="wide")
@@ -14,7 +14,7 @@ st.title("⚡ Redis Data Acceleration Demo")
 st.markdown("Proiect T4 - Comparatie de performanță: **MongoDB Atlas** vs **Redis Local**")
 
 # Tabs pentru diferite strategii
-tabs = st.tabs(["🔍 Citire (Read-Through)", "✍️ Scriere (Write-Through)", "🏆 Top Filme"])
+tabs = st.tabs(["🔍 Citire (Read-Through)", "✍️ Scriere (Write-Through)", "🏆 Top Filme", "🧪 Invalidation Lab"])
 
 # --- TAB 1: READ STRATEGY ---
 with tabs[0]:
@@ -218,7 +218,13 @@ with tabs[1]:
 # --- TAB 3: TOP FILME ---
 with tabs[2]:
     st.header("🏆 Top " + str(limit_top_movies) + " Filme (Redis Sorted Sets)")
+    st.markdown("Compară performanța între abordarea clasică (JSON întreg) și cea optimizată (Redis Hashes + Pipelining).")
 
+    col_std, col_opt = st.columns(2)
+
+    with col_std:
+        st.subheader("📊 Standard Approach")
+        st.markdown("Returnează top filme ca JSON complet din Redis.")
     if st.button("🔄 Încarcă Top Filme", key="top_btn"):
         try:
             response = requests.get("http://127.0.0.1:8000/top-movies")
@@ -248,6 +254,81 @@ with tabs[2]:
         except Exception as e:
             st.error(f"Eroare conexiune: {e}")
 
+    with col_opt:
+        st.subheader("🚀 Optimized Approach")
+        st.markdown("Returnează top filme folosind Redis Hashes și Pipelining pentru performanță maximă.")
+    if st.button("🔄 Încarcă Top Filme Optimizat", key="top_opt_btn"):
+        try:
+            response = requests.get("http://127.0.0.1:8000/top-movies-optimized")
+            if response.status_code == 200:
+                data = response.json()
+                latency = data['latency_ms']
+                source = data['source']
+                movie_data = data['data']
+                
+                st.caption(f"⏱️ Timp încărcare top: **{latency} ms**")
+                # Afișăm filmele într-un grid
+                st.metric("Latency", f"{data['latency_ms']} ms", delta="- Optimized", delta_color="normal")
+                st.success(f"Source: {data['source']}")
+                
+                # Afișăm datele (care vin din Hash)
+                for m in data['data']:
+                    st.write(f"**{m.get('title')}** (⭐ {m.get('rating')})")
+        except Exception as e:
+                st.error(f"Err: {e}")
+            
+# --- TAB 4: INVALIDATION LAB ---
+with tabs[3]:
+    st.header("🧪 Cache Invalidation & Stale Data Simulation")
+    st.markdown("""
+    Aici vom demonstra ce se întâmplă când datele din Baza de Date se schimbă, dar Cache-ul rămâne în urmă (**Stale Data**).
+    """)
+
+    # Folosim un ID fix pentru experiment ca să fie ușor
+    test_id = st.text_input("ID Film Experiment:", value="573a1390f29313caabcd4803", key="inv_id")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    # --- PASUL 1: CITEȘTE STAREA CURENTĂ ---
+    with col1:
+        st.subheader("1. Starea Curentă")
+        if st.button("🔍 Citește Film (Prin API)", key="step1_btn"):
+            res = requests.get(f"http://127.0.0.1:8000/movie/{test_id}")
+            if res.status_code == 200:
+                data = res.json()
+                st.info(f"Titlu primit: **{data['data']['title']}**")
+                st.caption(f"Sursa: {data['source']}")
+                if "Redis" in data['source']:
+                    st.success("✅ Cache HIT")
+                else:
+                    st.warning("⚠️ Cache MISS (Data loaded from Mongo)")
+            else:
+                st.error("Film negăsit")
+
+    # --- PASUL 2: CREEAZĂ PROBLEMA (STALE DATA) ---
+    with col2:
+        st.subheader("2. Creează Inconsistență")
+        new_title = st.text_input("Noul Titlu (Backdoor):", value="TITLU MODIFICAT DE HACKER", key="hacker_title")
+        
+        if st.button("😈 Backdoor Update (Only Mongo)", key="step2_btn"):
+            # Apelăm endpoint-ul care ignoră Redis
+            requests.post(f"http://127.0.0.1:8000/simulate/backdoor-update/{test_id}?new_title={new_title}")
+            st.warning("⚠️ Mongo a fost actualizat!")
+            st.write("Redis NU știe de această modificare.")
+            st.write("Dacă apeși din nou pe Pasul 1, vei primi tot titlul VECHI din Redis.")
+
+    # --- PASUL 3: REZOLVĂ PROBLEMA (INVALIDARE) ---
+    with col3:
+        st.subheader("3. Strategii de Rezolvare")
+        
+        st.markdown("**Opțiunea A: Așteaptă TTL**")
+        st.caption("Așteaptă 5 minute să expire singur.")
+        
+        st.markdown("**Opțiunea B: Invalidare Manuală**")
+        if st.button("🧹 Force Cache Invalidation", key="step3_btn"):
+            requests.delete(f"http://127.0.0.1:8000/simulate/invalidate/{test_id}")
+            st.success("🗑️ Cheia a fost ștearsă din Redis!")
+            st.write("Dacă apeși pe Pasul 1, vei primi titlul NOU (Mongo).")
 # --- SECTIUNE DE MONITORIZARE ---
 
 st.divider()
@@ -364,3 +445,4 @@ if st.button("🔍 Caută Cinematografe"):
             
     except Exception as e:
         st.error(f"Eroare: {e}")
+
