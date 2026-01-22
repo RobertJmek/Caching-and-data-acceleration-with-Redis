@@ -6,3 +6,46 @@ services:
     container_name: redis_cache
     ports:
       - "6379:6379"
+
+# --- PROMETHEUS (Colectorul) ---
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway" 
+
+  # --- GRAFANA (Vizualizatorul) ---
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ALLOW_EMBEDDING=true        # Permite iFrame
+      - GF_AUTH_ANONYMOUS_ENABLED=true          # Nu cere login pentru vizualizare
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer       # Vizitatorii sunt doar spectatori
+    depends_on:
+      - prometheus
+    volumes:
+      - grafana_storage:/var/lib/grafana
+
+  locust:
+    image: locustio/locust
+    container_name: locust_load_tester
+    ports:
+      - "8089:8089" # Portul pentru interfața web
+    volumes:
+      - ./stresslocust.py:/mnt/locust/locustfile.py # Îi dăm fișierul 
+    command: -f /mnt/locust/locustfile.py
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  prometheus_data:
+  grafana_storage:
