@@ -77,26 +77,28 @@ graph TD
     linkStyle 7 stroke:red,stroke-width:3px;
 ```
 
- 2.2 Data Flow: 
+## 2.2 Data Flow Strategies
 
-    2.2.1 Read (Cache Aside)
+### 🟢 2.2.1 Read (Cache Aside)
+*The system lazily loads data into the cache only when requested.*
 
- Logic: 
+1.  **🔍 Check Redis Cache:**
+    * `service.py` queries Redis for the requested key.
+2.  **⚡ Cache Hit:**
+    * Data is returned immediately, bypassing the database.
+3.  **🐢 Cache Miss:**
+    * Query **MongoDB** for the data.
+    * Return the data to the client.
+    * **Async Action:** Populate Redis with the new data to speed up future requests.
 
-    1. Check Redis Cache (service.py queries REDIS)
+### 🔵 2.2.2 Write (Write-Through)
+*The system ensures the cache is updated whenever the database is modified.*
 
-    2. Hit: Return Data almost instantly
-
-    3. Miss: We query Mongo, return the data, and the populate Redis Async.
-
-
-    2.2.2 Write (Write-Through):
-
- Logic:
-
-    1. Write the data into MongoDb
-
-    2. Populate Redis Async. In this way, Redis won't return outdated data.
+1.  **💾 Write to Database:**
+    * Data is first committed to **MongoDB**.
+2.  **🔄 Sync Cache:**
+    * **Async Action:** Populate or update the corresponding key in **Redis**.
+    * *Benefit:* Prevents "stale reads" where the cache might otherwise return outdated information.
 
 
 3. DATA MODEL
