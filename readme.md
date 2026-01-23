@@ -4,7 +4,7 @@ This project demonstrates how to integrate Redis as a high-performance caching l
 
 High Level Application DIAGRAM:
 
-```meemaid
+```mermaid
 ---
 config:
   theme: mc
