@@ -231,17 +231,10 @@ def create_movie_write_through(movie_data: dict):
 #4 GEO Indexing for Theaters
     
 def seed_theaters():
-
-    """
-
-    Populează Redis cu câteva locații fictive (Cinematografe din București).
-    Folosește comanda GEOADD.
-
-    """
     key = "theaters:bucharest"
     
     # Format: (Longitudine, Latitudine, Nume)
-    # Atenție: Redis cere Longitudine PRIMA, apoi Latitudine!
+    # Atenție: Redis cere Longitudine PRIMA, apoi Latitudine
     locations = [
         (26.0534, 44.4304, "Cinema City AFI Cotroceni"),
         (26.0963, 44.4268, "Cinema City Sun Plaza"),
@@ -309,7 +302,7 @@ def cache_movie_as_hash(movie_id: str, movie_data: dict):
     key = f"movie:hash:{movie_id}"
     
     # Redis Hashes sunt plate, deci luăm doar câmpurile de top
-    # Convertim totul la string pentru siguranță
+
     mapping = {
         "title": str(movie_data.get('title', 'N/A')),
         "year": str(movie_data.get('year', 'N/A')),
@@ -340,7 +333,7 @@ def get_top_movies_optimized(limit=limit_top_movies):
     
     # 2. Dacă e gol, facem Seed ACUM
     if not top_ids:
-        success = seed_optimized_cache(limit * 2) # Luăm mai multe pt rezervă
+        success = seed_optimized_cache(limit + 10) 
         if success:
             # Încercăm să citim iar după seed
             top_ids = redis_client.zrevrange(leaderboard_key, 0, limit - 1)
@@ -376,10 +369,6 @@ def get_top_movies_optimized(limit=limit_top_movies):
 
 
 def seed_optimized_cache(limit=limit_top_movies):
-    """
-    Funcție auxiliară care citește din Mongo și populează
-    structurile optimizate în Redis (Hash-uri și ZSet).
-    """
     print("⚙️ Seeding Optimized Cache...")
     # Luăm filmele cu rating bun din Mongo
     pipeline = [

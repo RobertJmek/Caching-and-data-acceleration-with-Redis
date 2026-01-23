@@ -120,7 +120,7 @@ plotly
 dnspython
 ```
 
-5. Importand Code Snippets:
+5. Important Code Snippets:
 
 Connection to Redis & Mongo(database.py):
 
@@ -144,40 +144,81 @@ redis_client = redis.Redis(
 )
 ```
 
+Optimized Getting top N movies using Pipelining and Hashes(service.py):
 
+```
+def get_top_movies_optimized(limit=limit_top_movies):
+    leaderboard_key = "leaderboard:top_movies_opt"
+    ...
+    # 3. Luăm detaliile prin Pipeline (Fast Fetch)
+    pipe = redis_client.pipeline()
+    for mid in top_ids:
+        if isinstance(mid, bytes):
+            mid = mid.decode('utf-8')
+        pipe.hgetall(f"movie:hash:{mid}")
+        
+    hash_results = pipe.execute()
+```
 
+Implemented Cache Invalidation for simulation(main.py):
 
+```
+@app.delete("/simulate/invalidate/{movie_id}")
+async def force_invalidate(movie_id: str):
+    """
+    Șterge forțat cheia din Redis.
+    Următorul Request va fi obligat să ia datele proaspete din Mongo.
+    """
+    key = f"movie:{movie_id}"
+    hash_key = f"movie:hash:{movie_id}"
+    
+    redis_client.delete(key)      # Șterge String Cache
+    redis_client.delete(hash_key) # Șterge Hash Cache
+    
+    return {"message": f"Cache invalidated for {movie_id}"}
+```
 
+6. PERFORMANCE & INTERPRETATION
 
+I did stress testing using locust.io. For ENDPOINTS /movie/id and /top-movies:
 
+Configuration:
 
+Number of users(Peak): 1
+Ramp up: 1
+Run time: 120s
 
+NO CACHE(MongoDB) vs CACHE(TTL=200) with Grafana:
 
+![Grafana](images/grafana_vizualization.png)
 
+The performance increase can be easily seen. Redis improves read speed by 20x+. 
 
+With local Redis(outside Docker). I could get the read speed to around 0.3 MS. An ~150x increase:
 
+![Redis_Local](images/redis_local_movie_id.png)
 
+Hashes increase performance by only retrieving the needed fields from Redis instead of the whole JSON. This increases read speed by around 10x over Sets(still Redis):
 
+![sets_vs_hashes](images/sets_vs_hash.png)
 
+Youtube DEMO: https://youtu.be/1cb9NB1f800
 
+Based on everything I wrote into this file, I generated the presentation RedisDataAcceleration.pdf on 23 JAN 2026 using Gemini 3 PRO[2]. 
 
+![presentation](Redis Data Acceleration.pdf)
 
-
-
-
-
-
-
+The whole code was revised with Copilot[3] for better readbility and code comments.
 
 REFERENCES:
 
 [1] https://editor.plantuml.com/uml/LO_1JiCm38RlUGhJ-tW4j8q9L6b84zjEqmvMwhKHIHmbBcX2UtVIBb1wIUBV_sz_MIR1ABspwa4wSWJ1el5A1TGVs19KnqGHQYyKBwWfLV2j04vxYOJE6e5ZVGPC-LAtVwbL2DPe5CF-dW3Gx09xyWBL2oPPxMfOPplvfXe6vBeOJouJF8Rh-Lxb_Pz6qo20kissR50GziBnZ-kT6fFW6NL78zPO3uqtzYrlrgCulcU33cJ9IRp2WTaQtrQ_ABl8ZgIZFXMQruWNz7YUnRUC3GWbcQBPkcNT9ncTnneMYuQ__E9f-AXI-SXAD6qdMHefvrg1L1D0xbcwI9bGE2PnCghxujpgGt4loJUzipy0
-[2] 
-
+[2] Google, Gemini 3 PRO, https://gemini.google.com/app, Date generated: January 23, 2026.
+[3] Copilot, https://copilot.microsoft.com,Date Generate: 15-23 January 2026.
 
 BIBLIOGRAPHIC INFORMATION:
 
-1. Redis Documentation. (n.d.). Data Types & Pipelining. Retrieved from redis.io.
-2. MongoDB Documentation. (n.d.). Aggregation Framework. Retrieved from mongodb.com.
+1. Redis Documentation. Data Types & Pipelining. Retrieved from redis.io.
+2. MongoDB Documentation. Aggregation Framework. Retrieved from mongodb.com.
 3. FastAPI. High performance Python API. Retrieved from fastapi.tiangolo.com.
-4. Prometheus & Grafana. (n.d.). Monitoring Stack. Retrieved from prometheus.io.
+4. Prometheus & Grafana. Monitoring Stack. Retrieved from prometheus.io.
