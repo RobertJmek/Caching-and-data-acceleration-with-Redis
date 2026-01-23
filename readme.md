@@ -226,7 +226,9 @@ The whole code was revised with Copilot[3] for better readbility and code commen
 REFERENCES:
 
 [1] https://editor.plantuml.com/uml/LO_1JiCm38RlUGhJ-tW4j8q9L6b84zjEqmvMwhKHIHmbBcX2UtVIBb1wIUBV_sz_MIR1ABspwa4wSWJ1el5A1TGVs19KnqGHQYyKBwWfLV2j04vxYOJE6e5ZVGPC-LAtVwbL2DPe5CF-dW3Gx09xyWBL2oPPxMfOPplvfXe6vBeOJouJF8Rh-Lxb_Pz6qo20kissR50GziBnZ-kT6fFW6NL78zPO3uqtzYrlrgCulcU33cJ9IRp2WTaQtrQ_ABl8ZgIZFXMQruWNz7YUnRUC3GWbcQBPkcNT9ncTnneMYuQ__E9f-AXI-SXAD6qdMHefvrg1L1D0xbcwI9bGE2PnCghxujpgGt4loJUzipy0
+
 [2] Google, Gemini 3 PRO, https://gemini.google.com/app, Date generated: January 23, 2026.
+
 [3] Copilot, https://copilot.microsoft.com,Date Generate: 15-23 January 2026.
 
 BIBLIOGRAPHIC INFORMATION:
