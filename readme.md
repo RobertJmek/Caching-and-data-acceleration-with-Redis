@@ -78,23 +78,36 @@ graph TD
 ```
 
  2.2 Data Flow: 
+
     2.2.1 Read (Cache Aside)
 
  Logic: 
+
     1. Check Redis Cache (service.py queries REDIS)
+
     2. Hit: Return Data almost instantly
+
     3. Miss: We query Mongo, return the data, and the populate Redis Async.
 
+
     2.2.2 Write (Write-Through):
+
  Logic:
+
     1. Write the data into MongoDb
+
     2. Populate Redis Async. In this way, Redis won't return outdated data.
+
 
 3. DATA MODEL
 
 In MongoDb I used the database `sample_mflix' where a movie is stored as a BSON document:
 
-```{"_id":"573a1390f29313caabcd4803","plot":"Cartoon figures announce, via comic strip balloons, that they will move - and move they do, in a wildly exaggerated style.","genres":["Animation","Short","Comedy"],"runtime":7,"cast":["Winsor McCay"],"num_mflix_comments":0,"poster":"https://m.media-amazon.com/images/M/MV5BYzg2NjNhNTctMjUxMi00ZWU4LWI3ZjYtNTI0NTQxNThjZTk2XkEyXkFqcGdeQXVyNzg5OTk2OA@@._V1_SY1000_SX677_AL_.jpg","title":"Esti bine","fullplot":"Cartoonist Winsor McCay agrees to create a large set of drawings that will be photographed and made into a motion picture. The job requires plenty of drawing supplies, and the cartoonist must also overcome some mishaps caused by an assistant. Finally, the work is done, and everyone can see the resulting animated picture.","languages":["English"],"released":"1911-04-08T00:00:00","directors":["Winsor McCay","J. Stuart Blackton"],"writers":["Winsor McCay (comic strip \"Little Nemo in Slumberland\")","Winsor McCay (screenplay)"],"awards":{"wins":1,"nominations":0,"text":"1 win."},"lastupdated":"2015-08-29 01:09:03.030000000","year":1911,"imdb":{"rating":7.7,"votes":1034,"id":1737},"countries":["USA"],"type":"movie","tomatoes":{"viewer":{"rating":3.4,"numReviews":89,"meter":47},"lastUpdated":"2015-08-20T18:51:24"}}```
+
+
+```{"_id":"573a1390f29313caabcd4803","plot":"Cartoon figures announce, via comic strip balloons, that they will move - and move they do, in a wildly exaggerated style.","genres":["Animation","Short","Comedy"],"runtime":7,"cast":["Winsor McCay"],"num_mflix_comments":0,"poster":"..","title":"Esti bine","fullplot":"...","languages":["English"],"released":"1911-04-08T00:00:00","directors":["Winsor McCay","J. Stuart Blackton"],"writers":["Winsor McCay (comic strip \"Little Nemo in Slumberland\")","Winsor McCay (screenplay)"],"awards":{"wins":1,"nominations":0,"text":"1 win."},"lastupdated":"2015-08-29 01:09:03.030000000","year":1911,"imdb":{"rating":7.7,"votes":1034,"id":1737},"countries":["USA"],"type":"movie","tomatoes":{"viewer":{"rating":3.4,"numReviews":89,"meter":47},"lastUpdated":"2015-08-20T18:51:24"}}```
+
+
 
 4. HARDWARE & SOFTWARE:
 
@@ -205,8 +218,6 @@ Hashes increase performance by only retrieving the needed fields from Redis inst
 Youtube DEMO: https://youtu.be/1cb9NB1f800
 
 Based on everything I wrote into this file, I generated the presentation RedisDataAcceleration.pdf on 23 JAN 2026 using Gemini 3 PRO[2]. 
-
-![presentation](Redis Data Acceleration.pdf)
 
 The whole code was revised with Copilot[3] for better readbility and code comments.
 
