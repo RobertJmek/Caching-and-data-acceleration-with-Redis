@@ -1,8 +1,14 @@
-This project demonstrates how to integrate Redis as a high-performance caching layer to accelerate data retrieval from a persistent database (MongoDB - in the cloud). By implementing various caching strategies, we aim to reduce query latency, lower the load on the primary database, and improve overall system scalability.
+1. INTRODUCTION
 
+This project demonstrates how to integrate Redis as a high-performance caching layer to accelerate data retrieval from a persistent database (MongoDB Atlast). 
 
+By implementing various caching strategies(Cache Aside, Write-Through), and advanced data strunctures(Sorted Sets, Sorted Hashes, Geospatial Indexes), we aim to reduce query latency, lower the load on the primary database, and improve overall system scalability.
 
-High Level Application DIAGRAM:
+2: SYSTEM ARCHITECTURE
+
+ 2.1 High Level Application DIAGRAM illustrates the Hybrid Cloud setup:
+
+Initially made by me using www.plantuml.com [1], revized visually by Gemini 3 PRO on 23.01.2026 and converted to mermaid to be easily seen on GitHub.
 
 ```mermaid
 ---
@@ -71,8 +77,21 @@ graph TD
     linkStyle 7 stroke:red,stroke-width:3px;
 ```
 
+ 2.2 Data Flow: Read (Cache Aside)
 
-Initially made by me using www.plantuml.com [1], revized visually by Gemini 3 PRO and converted to mermeid to be easily seen on GitHub.
+ Logic: 
+    1. Check Redis Cache (service.py queries REDIS)
+    2. Hit: Return Data almost instantly
+    3. Miss: We query Mongo, return the data, and the populate Redis Async.
+
+    Write (Write-Through):
+ Logic:
+    1. Write the data into MongoDb
+    2. Populate Redis Async. In this way, Redis won't return outdated data.
+
+
+
+
 
 
 
@@ -97,3 +116,11 @@ REFERENCES:
 
 [1] https://editor.plantuml.com/uml/LO_1JiCm38RlUGhJ-tW4j8q9L6b84zjEqmvMwhKHIHmbBcX2UtVIBb1wIUBV_sz_MIR1ABspwa4wSWJ1el5A1TGVs19KnqGHQYyKBwWfLV2j04vxYOJE6e5ZVGPC-LAtVwbL2DPe5CF-dW3Gx09xyWBL2oPPxMfOPplvfXe6vBeOJouJF8Rh-Lxb_Pz6qo20kissR50GziBnZ-kT6fFW6NL78zPO3uqtzYrlrgCulcU33cJ9IRp2WTaQtrQ_ABl8ZgIZFXMQruWNz7YUnRUC3GWbcQBPkcNT9ncTnneMYuQ__E9f-AXI-SXAD6qdMHefvrg1L1D0xbcwI9bGE2PnCghxujpgGt4loJUzipy0
 [2] 
+
+
+BIBLIOGRAPHIC INFORMATION:
+
+1. Redis Documentation. (n.d.). Data Types & Pipelining. Retrieved from redis.io.
+2. MongoDB Documentation. (n.d.). Aggregation Framework. Retrieved from mongodb.com.
+3. FastAPI. High performance Python API. Retrieved from fastapi.tiangolo.com.
+4. Prometheus & Grafana. (n.d.). Monitoring Stack. Retrieved from prometheus.io.
