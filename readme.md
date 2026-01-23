@@ -99,7 +99,9 @@ In MongoDb I used the database `sample_mflix' where a movie is stored as a BSON 
 4. HARDWARE & SOFTWARE:
 
 Host: Apple ARM M1, 16 GB RAM
+
 Virtualization is achieved using Docker Containers
+
 Cloud: MongoDb Atlast running on AWS. 
 
 I used the latest versions of the folowing tools in order to run the Backend&UI on my machine: 
