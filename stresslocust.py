@@ -9,7 +9,6 @@ MOVIE_IDS = [
 
 class WebsiteUser(HttpUser):
     # Timpul de așteptare între request-uri (simulăm un om real)
-    # Între 0.5 și 2 secunde. Dacă vrei stress maxim, pune between(0.1, 0.5)
     wait_time = between(1, 2)
 
     @task(3) # Ponderea 3: De 3 ori mai probabil să ceară un film specific
