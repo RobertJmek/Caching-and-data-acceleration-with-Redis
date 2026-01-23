@@ -11,14 +11,13 @@ config:
 ---
 graph TD
 
-    classDef ui fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
-    classDef app fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
-    classDef config fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
-    classDef db fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
-    classDef tool fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
-    classDef cloud fill:#f5f5f5,stroke:#9e9e9e,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef ui fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000000;
+    classDef app fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000000;
+    classDef config fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000000;
+    classDef db fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000000;
+    classDef tool fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000000;
+    classDef cloud fill:#f5f5f5,stroke:#9e9e9e,stroke-width:2px,stroke-dasharray: 5 5,color:#000000;
 
- 
     subgraph Cloud_Infrastructure [☁️ Cloud Infrastructure]
         direction TB
         Mongo[(MongoDB Atlas)]:::db
@@ -73,7 +72,7 @@ graph TD
 ```
 
 
-Initially made by me using www.plantuml.com[1], revized visually by Gemini 3 PRO and converted to mermeid to be easily seen on GitHub.
+Initially made by me using www.plantuml.com [1], revized visually by Gemini 3 PRO and converted to mermeid to be easily seen on GitHub.
 
 
 
