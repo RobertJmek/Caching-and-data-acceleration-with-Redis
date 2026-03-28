@@ -1,14 +1,16 @@
-1. INTRODUCTION
+# 1. INTRODUCTION
 
-This project demonstrates how to integrate Redis as a high-performance caching layer to accelerate data retrieval from a persistent database (MongoDB Atlast). 
+This project demonstrates how to integrate Redis as a high-performance caching layer to accelerate data retrieval from a persistent database (MongoDB Atlas).
 
-By implementing various caching strategies(Cache Aside, Write-Through), and advanced data strunctures(Sorted Sets, Sorted Hashes, Geospatial Indexes), we aim to reduce query latency, lower the load on the primary database, and improve overall system scalability.
+By implementing various caching strategies (Cache Aside, Write-Through), and advanced data structures (Sorted Sets, Sorted Hashes, Geospatial Indexes), we aim to reduce query latency, lower the load on the primary database, and improve overall system scalability.
 
-2. SYSTEM ARCHITECTURE
+# 2. SYSTEM ARCHITECTURE
 
- 2.1 High Level Application DIAGRAM illustrates the Hybrid Cloud setup:
+## 2.1 High Level Application Diagram
 
-Initially made by me using www.plantuml.com [1], revized visually by Gemini 3 PRO on 23.01.2026 and converted to mermaid to be easily seen on GitHub.
+*Illustrates the Hybrid Cloud setup:*
+
+Initially made by me using [www.plantuml.com](https://plantuml.com) [1], revised visually by Gemini 3 PRO on 23.01.2026 and converted to Mermaid for easy viewing on GitHub.
 
 ```mermaid
 ---
@@ -101,25 +103,21 @@ graph TD
     * *Benefit:* Prevents "stale reads" where the cache might otherwise return outdated information.
 
 
-3. DATA MODEL
+# DATA MODEL
 
-In MongoDb I used the database `sample_mflix' where a movie is stored as a BSON document:
+In MongoDb I used the database `sample_mflix` where a movie is stored as a BSON document:
 
+```json
+{"_id":"573a1390f29313caabcd4803","plot":"Cartoon figures announce, via comic strip balloons, that they will move - and move they do, in a wildly exaggerated style.","genres":["Animation","Short","Comedy"],"runtime":7,"cast":["Winsor McCay"],"num_mflix_comments":0,"poster":"..","title":"Esti bine","fullplot":"...","languages":["English"],"released":"1911-04-08T00:00:00","directors":["Winsor McCay","J. Stuart Blackton"],"writers":["Winsor McCay (comic strip \"Little Nemo in Slumberland\")","Winsor McCay (screenplay)"],"awards":{"wins":1,"nominations":0,"text":"1 win."},"lastupdated":"2015-08-29 01:09:03.030000000","year":1911,"imdb":{"rating":7.7,"votes":1034,"id":1737},"countries":["USA"],"type":"movie","tomatoes":{"viewer":{"rating":3.4,"numReviews":89,"meter":47},"lastUpdated":"2015-08-20T18:51:24"}}
+```
 
+# HARDWARE & SOFTWARE
 
-```{"_id":"573a1390f29313caabcd4803","plot":"Cartoon figures announce, via comic strip balloons, that they will move - and move they do, in a wildly exaggerated style.","genres":["Animation","Short","Comedy"],"runtime":7,"cast":["Winsor McCay"],"num_mflix_comments":0,"poster":"..","title":"Esti bine","fullplot":"...","languages":["English"],"released":"1911-04-08T00:00:00","directors":["Winsor McCay","J. Stuart Blackton"],"writers":["Winsor McCay (comic strip \"Little Nemo in Slumberland\")","Winsor McCay (screenplay)"],"awards":{"wins":1,"nominations":0,"text":"1 win."},"lastupdated":"2015-08-29 01:09:03.030000000","year":1911,"imdb":{"rating":7.7,"votes":1034,"id":1737},"countries":["USA"],"type":"movie","tomatoes":{"viewer":{"rating":3.4,"numReviews":89,"meter":47},"lastUpdated":"2015-08-20T18:51:24"}}```
+- Host: Apple ARM M1, 16 GB RAM
+- Virtualization is achieved using Docker Containers
+- Cloud: MongoDb Atlast running on AWS.
 
-
-
-4. HARDWARE & SOFTWARE:
-
-Host: Apple ARM M1, 16 GB RAM
-
-Virtualization is achieved using Docker Containers
-
-Cloud: MongoDb Atlast running on AWS. 
-
-I used the latest versions of the folowing tools in order to run the Backend&UI on my machine: 
+I used the latest versions of the following tools in order to run the Backend & UI on my machine: 
 
 ```
 fastapi
@@ -135,9 +133,9 @@ plotly
 dnspython
 ```
 
-5. Important Code Snippets:
+# Important Code Snippets
 
-Connection to Redis & Mongo(database.py):
+## Connection to Redis & Mongo (database.py):
 
 ```
 load_dotenv()
@@ -146,11 +144,9 @@ MONGO_URL = os.getenv("MONGO_URL")
 REDIS_HOST = os.getenv("REDIS_HOST", "redis") 
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 
-
 mongo_client = MongoClient(MONGO_URL)
 
 db = mongo_client["sample_mflix"] 
-
 
 redis_client = redis.Redis(
     host=REDIS_HOST,
@@ -159,7 +155,7 @@ redis_client = redis.Redis(
 )
 ```
 
-Optimized Getting top N movies using Pipelining and Hashes(service.py):
+## Optimized Getting top N movies using Pipelining and Hashes (service.py):
 
 ```
 def get_top_movies_optimized(limit=limit_top_movies):
@@ -175,7 +171,7 @@ def get_top_movies_optimized(limit=limit_top_movies):
     hash_results = pipe.execute()
 ```
 
-Implemented Cache Invalidation for simulation(main.py):
+## Implemented Cache Invalidation for simulation (main.py):
 
 ```
 @app.delete("/simulate/invalidate/{movie_id}")
@@ -193,27 +189,26 @@ async def force_invalidate(movie_id: str):
     return {"message": f"Cache invalidated for {movie_id}"}
 ```
 
-6. PERFORMANCE & INTERPRETATION
+# PERFORMANCE & INTERPRETATION
 
 I did stress testing using locust.io. For ENDPOINTS /movie/id and /top-movies:
 
-Configuration:
+- Configuration:
+  - Number of users (Peak): 1
+  - Ramp up: 1
+  - Run time: 120s
 
-Number of users(Peak): 1
-Ramp up: 1
-Run time: 120s
-
-NO CACHE(MongoDB) vs CACHE(TTL=200) with Grafana:
+NO CACHE (MongoDB) vs CACHE (TTL=200) with Grafana:
 
 ![Grafana](images/grafana_vizualization.png)
 
-The performance increase can be easily seen. Redis improves read speed by 20x+. 
+The performance increase can be easily seen. Redis improves read speed by 20x+.
 
-With local Redis(outside Docker). I could get the read speed to around 0.3 MS. An ~150x increase:
+With local Redis (outside Docker), I could get the read speed to around 0.3 MS. An ~150x increase:
 
 ![Redis_Local](images/redis_local_movie_id.png)
 
-Hashes increase performance by only retrieving the needed fields from Redis instead of the whole JSON. This increases read speed by around 10x over Sets(still Redis):
+Hashes increase performance by only retrieving the needed fields from Redis instead of the whole JSON. This increases read speed by around 10x over Sets (still Redis).
 
 ![sets_vs_hashes](images/sets_vs_hash.png)
 
